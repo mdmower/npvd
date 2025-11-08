@@ -8,11 +8,11 @@ import {LockfileObject, readWantedLockfile} from '@pnpm/lockfile.fs';
 import {
   lockfileWalker as lockfileWalkerV6,
   LockfileWalkerStep as LockfileWalkerStepV6,
-} from '@pnpm/lockfile-walker';
+} from '@npvd/npvd-pnpm-v6';
 import {
   Lockfile as LockfileV6,
   readWantedLockfile as readWantedLockfileV6,
-} from '@pnpm/lockfile-file';
+} from '@npvd/npvd-pnpm-v6';
 import {dirname, join as pathJoin} from 'node:path';
 import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
