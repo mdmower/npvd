@@ -148,15 +148,20 @@ function diffPnpmLockFile(
   const readVersions = (lockFile: LockfileObject | LockfileV6) => {
     const projectIds = Object.keys(lockFile.importers) as (keyof typeof lockFile.importers)[];
 
-    const lockfileWalkerFn =
-      parseFloat(lockFile.lockfileVersion) < 7 ? lockfileWalkerV6 : lockfileWalker;
-    const walker = lockfileWalkerFn(lockFile, projectIds, {
+    type WalkerOptions = Parameters<typeof lockfileWalker>[2];
+    type WalkerOptionsV6 = Parameters<typeof lockfileWalkerV6>[2];
+    const walkerOptions = {
       include: {
         dependencies: includeTypes.includes('prod'),
         devDependencies: includeTypes.includes('dev'),
         optionalDependencies: includeTypes.includes('optional'),
       },
-    });
+    } satisfies WalkerOptions satisfies WalkerOptionsV6;
+
+    const walker =
+      parseFloat(lockFile.lockfileVersion) < 7
+        ? lockfileWalkerV6(lockFile as LockfileV6, projectIds, walkerOptions)
+        : lockfileWalker(lockFile as LockfileObject, projectIds, walkerOptions);
 
     const diffItems: ConsolidatedDiffItem[] = [];
     const walk = (step: LockfileWalkerStep | LockfileWalkerStepV6, root: string[]) => {

@@ -44,23 +44,23 @@
   "homepage": "https://github.com/mdmower/node-package-version-diff#readme",
   "dependencies": {
     "@npvd/npvd-pnpm-v6": "^0.1.0",
-    "@pnpm/lockfile.fs": "^1001.1.11",
-    "@pnpm/lockfile.walker": "^1001.0.8",
-    "commander": "^13.1.0",
-    "csv-stringify": "^6.5.2"
+    "@pnpm/lockfile.fs": "^1001.1.21",
+    "@pnpm/lockfile.walker": "^1001.0.16",
+    "commander": "^14.0.2",
+    "csv-stringify": "^6.6.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.25.1",
-    "@types/node": "^20.17.30",
-    "eslint-config-prettier": "^10.1.2",
-    "eslint-plugin-prettier": "^5.2.6",
-    "globals": "^16.0.0",
-    "prettier": "^3.5.3",
-    "publint": "^0.3.12",
-    "rimraf": "^6.0.1",
-    "tsup": "^8.4.0",
-    "tsx": "^4.19.3",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.31.0"
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^20.19.24",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.2",
+    "publint": "^0.3.15",
+    "rimraf": "^6.1.0",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.3"
   }
 }
