@@ -44,23 +44,23 @@
   "homepage": "https://github.com/mdmower/npvd#readme",
   "dependencies": {
     "@npvd/npvd-pnpm-v6": "^0.1.0",
-    "@pnpm/lockfile.fs": "^1001.1.28",
-    "@pnpm/lockfile.walker": "^1001.0.23",
+    "@pnpm/lockfile.fs": "^1001.1.29",
+    "@pnpm/lockfile.walker": "^1001.0.24",
     "commander": "^14.0.2",
     "csv-stringify": "^6.6.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@types/node": "^20.19.27",
+    "@types/node": "^20.19.30",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "globals": "^17.0.0",
-    "prettier": "^3.7.4",
-    "publint": "^0.3.16",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^17.2.0",
+    "prettier": "^3.8.1",
+    "publint": "^0.3.17",
     "rimraf": "^6.1.2",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.52.0"
+    "typescript-eslint": "^8.54.0"
   }
 }
