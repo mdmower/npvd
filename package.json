@@ -1,6 +1,6 @@
 {
   "name": "@npvd/npvd",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Identify version differences between node package lockfile revisions",
   "type": "module",
   "scripts": {
