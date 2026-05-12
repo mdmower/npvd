@@ -55,8 +55,8 @@ function filterTypes({include, omit}: Options) {
 }
 
 async function readLockFiles(from: string, to: string, {mode, git, gitLockFile}: Options) {
-  let fromDoc = '';
-  let toDoc = '';
+  let fromDoc: string;
+  let toDoc: string;
   if (git) {
     const lockFilePath = gitLockFile ?? defaultLockName[mode];
     const [fromExec, toExec] = await Promise.all([
@@ -161,7 +161,7 @@ function diffPnpmLockFile(
     const walker =
       parseFloat(lockFile.lockfileVersion) < 7
         ? lockfileWalkerV6(lockFile as LockfileV6, projectIds, walkerOptions)
-        : lockfileWalker(lockFile as LockfileObject, projectIds, walkerOptions);
+        : lockfileWalker(lockFile, projectIds, walkerOptions);
 
     const diffItems: ConsolidatedDiffItem[] = [];
     const walk = (step: LockfileWalkerStep | LockfileWalkerStepV6, root: string[]) => {

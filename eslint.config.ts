@@ -1,11 +1,10 @@
-// @ts-check
-
+import {defineConfig} from 'eslint/config';
 import eslint from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import prettierConfigRecommended from 'eslint-plugin-prettier/recommended';
 
-export default tseslint.config(
+export default defineConfig(
   {
     ignores: ['dist/'],
   },
@@ -21,7 +20,7 @@ export default tseslint.config(
   ...tseslint.configs.recommendedTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
   {
-    files: ['eslint.config.js', 'tsup.config.js'],
+    files: ['tsup.config.js'],
     ...tseslint.configs.disableTypeChecked,
   },
   {
