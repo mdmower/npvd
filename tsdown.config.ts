@@ -1,4 +1,4 @@
-import {defineConfig} from 'tsup';
+import {defineConfig} from 'tsdown';
 
 export default defineConfig((options) => {
   const dev = options.env?.dev === 'true';

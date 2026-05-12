@@ -4,9 +4,10 @@
   "description": "Identify version differences between node package lockfile revisions",
   "type": "module",
   "scripts": {
-    "build": "npm run lint && npm run compile && publint",
-    "compile": "tsup",
-    "compile:debug": "tsup --env.dev true",
+    "build": "npm run check-types && npm run lint && npm run compile && publint",
+    "compile": "tsdown",
+    "compile:debug": "tsdown --env.dev true",
+    "check-types": "tsc --noEmit --skipLibCheck",
     "format": "prettier --write .",
     "lint": "eslint .",
     "clean": "rimraf dist"
@@ -17,10 +18,10 @@
   "main": "./dist/index.cjs",
   "exports": {
     "require": "./dist/index.cjs",
-    "import": "./dist/index.js"
+    "import": "./dist/index.mjs"
   },
   "bin": {
-    "npvd": "dist/cli.js"
+    "npvd": "dist/cli.mjs"
   },
   "files": [
     "/dist"
@@ -59,7 +60,7 @@
     "prettier": "^3.8.1",
     "publint": "^0.3.20",
     "rimraf": "^6.1.2",
-    "tsup": "^8.5.1",
+    "tsdown": "0.21.10",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.3"
