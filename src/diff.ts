@@ -161,7 +161,7 @@ function diffPnpmLockFile(
     const walker =
       parseFloat(lockFile.lockfileVersion) < 7
         ? lockfileWalkerV6(lockFile as LockfileV6, projectIds, walkerOptions)
-        : lockfileWalker(lockFile, projectIds, walkerOptions);
+        : lockfileWalker(lockFile as LockfileObject, projectIds, walkerOptions);
 
     const diffItems: ConsolidatedDiffItem[] = [];
     const walk = (step: LockfileWalkerStep | LockfileWalkerStepV6, root: string[]) => {
