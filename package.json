@@ -7,9 +7,10 @@
     "build": "npm run check-types && npm run lint && npm run compile && publint",
     "compile": "tsdown",
     "compile:debug": "tsdown --env.dev true",
-    "check-types": "tsc --noEmit --skipLibCheck",
+    "check-types": "tsc --noEmit --skipLibCheck && tsc --noEmit --skipLibCheck -p tests",
     "format": "prettier --write .",
     "lint": "eslint .",
+    "test": "vitest",
     "clean": "rimraf dist"
   },
   "engines": {
@@ -53,6 +54,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^20.19.41",
+    "@vitest/eslint-plugin": "^1.6.17",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.6.0",
@@ -63,6 +65,7 @@
     "tsdown": "^0.22.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.3"
+    "typescript-eslint": "^8.59.3",
+    "vitest": "^4.1.6"
   }
 }

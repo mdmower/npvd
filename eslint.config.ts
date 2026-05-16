@@ -2,6 +2,7 @@ import {defineConfig} from 'eslint/config';
 import eslint from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+import vitest from '@vitest/eslint-plugin';
 import prettierConfigRecommended from 'eslint-plugin-prettier/recommended';
 
 export default defineConfig(
@@ -28,7 +29,9 @@ export default defineConfig(
     languageOptions: {
       parserOptions: {
         sourceType: 'module',
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['*.config.ts'],
+        },
       },
     },
     rules: {
@@ -40,6 +43,10 @@ export default defineConfig(
     languageOptions: {
       globals: {...globals.node},
     },
+  },
+  {
+    files: ['tests/**/*.ts'],
+    ...vitest.configs.recommended,
   },
   prettierConfigRecommended
 );
