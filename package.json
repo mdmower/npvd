@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "lint": "eslint .",
     "test": "vitest",
+    "generate-fixtures": "tsx tests/fixtures/generate.ts",
     "clean": "rimraf dist"
   },
   "engines": {
