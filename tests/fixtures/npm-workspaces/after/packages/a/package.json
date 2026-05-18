@@ -1,0 +1,8 @@
+{
+  "name": "@npvd-fixture/a",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "commander": "14.0.0"
+  }
+}

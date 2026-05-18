@@ -2,7 +2,7 @@ import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {diffPackages} from '../src/index.js';
-import {dependencyVersions} from './fixtures/versions.js';
+import {dependencyVersions, workspaceDependencyVersions} from './fixtures/versions.js';
 import {lockFilePath} from './utils/utils.js';
 import {DependencyType} from '../src/options.js';
 
@@ -110,6 +110,24 @@ describe('diffPackages', () => {
         await rm(tmp, {recursive: true, force: true});
       }
     });
+
+    describe('workspaces', () => {
+      const beforeWorkspace = lockFilePath('npm-workspaces', 'before');
+      const afterWorkspace = lockFilePath('npm-workspaces', 'after');
+
+      it('does not surface workspace packages as dependencies', async () => {
+        const diff = await diffPackages(beforeWorkspace, afterWorkspace, {mode: 'npm'});
+        const names = diff.map(({name}) => name);
+        expect(names).not.toContain('packages/a');
+        expect(names).not.toContain('packages/b');
+      });
+
+      it('detects dependency changes within workspaces', async () => {
+        const diff = await diffPackages(beforeWorkspace, afterWorkspace, {mode: 'npm'});
+        const names = diff.map(({name}) => name);
+        expect(names).toContain('commander');
+      });
+    });
   });
 
   describe("mode: 'pnpm'", () => {
@@ -140,6 +158,42 @@ describe('diffPackages', () => {
       expect(full.map(({name}) => name)).toContain('isexe');
       expect(direct.map(({name}) => name)).not.toContain('isexe');
       expect(direct.map(({name}) => name)).toContain('which');
+    });
+
+    describe('workspaces', () => {
+      const beforeWorkspace = lockFilePath('pnpm-workspaces', 'before');
+      const afterWorkspace = lockFilePath('pnpm-workspaces', 'after');
+
+      const expectedWorkspaceChanges = [
+        ...new Set([
+          ...Object.keys(workspaceDependencyVersions.before),
+          ...Object.keys(workspaceDependencyVersions.after),
+        ]),
+      ].flatMap((workspace) => {
+        const [before, after] = (['before', 'after'] as const).map((stage) => ({
+          ...workspaceDependencyVersions[stage][workspace]?.dependencies,
+          ...workspaceDependencyVersions[stage][workspace]?.devDependencies,
+          ...workspaceDependencyVersions[stage][workspace]?.optionalDependencies,
+          ...workspaceDependencyVersions[stage][workspace]?.peerDependencies,
+        }));
+        return [...new Set([...Object.keys(before), ...Object.keys(after)])]
+          .filter((name) => before[name] !== after[name])
+          .map((name) => ({
+            path: [workspace, name],
+            name,
+            version: {from: before[name], to: after[name]},
+          }));
+      });
+
+      it('does not collapse paths across importers with the same dependencies at different versions', async () => {
+        const diff = await diffPackages(beforeWorkspace, beforeWorkspace, {mode: 'pnpm'});
+        expect(diff).toEqual([]);
+      });
+
+      it('reports per-importer changes with importer-prefixed paths', async () => {
+        const diff = await diffPackages(beforeWorkspace, afterWorkspace, {mode: 'pnpm'});
+        expect(diff).toEqual(expect.arrayContaining(expectedWorkspaceChanges));
+      });
     });
 
     // PNPM handles peer dependencies a prod dependencies

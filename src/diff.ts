@@ -3,10 +3,10 @@ import {DependencyType, dependencyTypes, Options} from './options.js';
 import util from 'node:util';
 import {exec} from 'node:child_process';
 import {isNpmLockFile, NpmLockFile} from './utils.js';
-import {lockfileWalker, LockfileWalkerStep} from '@pnpm/lockfile.walker';
+import {lockfileWalkerGroupImporterSteps, LockfileWalkerStep} from '@pnpm/lockfile.walker';
 import {LockfileObject, readWantedLockfile} from '@pnpm/lockfile.fs';
 import {
-  lockfileWalker as lockfileWalkerV6,
+  lockfileWalkerGroupImporterSteps as lockfileWalkerGroupImporterStepsV6,
   LockfileWalkerStep as LockfileWalkerStepV6,
 } from '@npvd/npvd-pnpm-v6';
 import {
@@ -102,6 +102,10 @@ function diffNpmLockFile(from: NpmLockFile, to: NpmLockFile, options: Options): 
           // included in the lockfile."
           return;
         }
+        if (!name.includes('node_modules/')) {
+          // Workspace package metadata (e.g. `packages/a`) — not an installed dependency.
+          return;
+        }
 
         const {dev, optional, peer} = entry;
         const types: DependencyType[] = [];
@@ -148,8 +152,8 @@ function diffPnpmLockFile(
   const readVersions = (lockFile: LockfileObject | LockfileV6) => {
     const projectIds = Object.keys(lockFile.importers) as (keyof typeof lockFile.importers)[];
 
-    type WalkerOptions = Parameters<typeof lockfileWalker>[2];
-    type WalkerOptionsV6 = Parameters<typeof lockfileWalkerV6>[2];
+    type WalkerOptions = Parameters<typeof lockfileWalkerGroupImporterSteps>[2];
+    type WalkerOptionsV6 = Parameters<typeof lockfileWalkerGroupImporterStepsV6>[2];
     const walkerOptions = {
       include: {
         dependencies: includeTypes.includes('prod'),
@@ -158,10 +162,10 @@ function diffPnpmLockFile(
       },
     } satisfies WalkerOptions satisfies WalkerOptionsV6;
 
-    const walker =
+    const groupedSteps =
       parseFloat(lockFile.lockfileVersion) < 7
-        ? lockfileWalkerV6(lockFile as LockfileV6, projectIds, walkerOptions)
-        : lockfileWalker(lockFile as LockfileObject, projectIds, walkerOptions);
+        ? lockfileWalkerGroupImporterStepsV6(lockFile as LockfileV6, projectIds, walkerOptions)
+        : lockfileWalkerGroupImporterSteps(lockFile as LockfileObject, projectIds, walkerOptions);
 
     const diffItems: ConsolidatedDiffItem[] = [];
     const walk = (step: LockfileWalkerStep | LockfileWalkerStepV6, root: string[]) => {
@@ -178,7 +182,10 @@ function diffPnpmLockFile(
       }
     };
 
-    walk(walker.step, []);
+    for (const {importerId, step} of groupedSteps) {
+      const root = importerId === '.' ? [] : [importerId];
+      walk(step, root);
+    }
     return diffItems;
   };
 

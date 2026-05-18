@@ -18,3 +18,17 @@ export const dependencyVersions: {before: FixtureDependencies; after: FixtureDep
     peerDependencies: {typescript: '5.6.3'},
   },
 };
+
+export const workspaceDependencyVersions: {
+  before: Record<string, FixtureDependencies>;
+  after: Record<string, FixtureDependencies>;
+} = {
+  before: {
+    'packages/a': {dependencies: {commander: '13.0.0'}},
+    'packages/b': {dependencies: {commander: '14.0.0'}},
+  },
+  after: {
+    'packages/a': {dependencies: {commander: '14.0.0'}},
+    'packages/b': {dependencies: {commander: '13.0.0'}},
+  },
+};
