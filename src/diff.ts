@@ -16,6 +16,7 @@ import {
 import {dirname, join as pathJoin} from 'node:path';
 import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
+import {parseSyml} from '@yarnpkg/parsers';
 
 export interface DiffResult {
   path: string[];
@@ -42,6 +43,7 @@ const pexec = util.promisify(exec);
 const defaultLockName: Record<Options['mode'], string> = {
   npm: 'package-lock.json',
   pnpm: 'pnpm-lock.yaml',
+  yarn: 'yarn.lock',
 };
 
 function filterTypes({include, omit}: Options) {
@@ -195,6 +197,90 @@ function diffPnpmLockFile(
   };
 }
 
+interface YarnLockEntry {
+  version?: string;
+  resolution?: string;
+  dependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  dependenciesMeta?: Record<string, {optional?: boolean | string}>;
+  linkType?: string;
+}
+type YarnLockFile = Record<string, YarnLockEntry | undefined>;
+
+function diffYarnLockFile(
+  from: YarnLockFile,
+  to: YarnLockFile,
+  options: Options
+): ConsolidatedDiff {
+  // Yarn berry's lock file merges `dependencies` and `devDependencies` for workspace entries, so
+  // prod and dev cannot be distinguished from the lock file alone. Peer-only direct deps are not
+  // installed by yarn, so they are skipped.
+  const {directOnly} = options;
+  const includeTypes = filterTypes(options);
+  const includeInstalled = includeTypes.includes('prod') || includeTypes.includes('dev');
+  const includeOptional = includeTypes.includes('optional');
+
+  const readVersions = (lockFile: YarnLockFile): ConsolidatedDiffItem[] => {
+    const descriptorMap = new Map<string, YarnLockEntry>();
+    const workspaces: {id: string; entry: YarnLockEntry}[] = [];
+    for (const [key, entry] of Object.entries(lockFile)) {
+      if (key === '__metadata' || !entry) continue;
+      // When one resolved package satisfies multiple version ranges, yarn merges them into a single
+      // comma separate entry: "chalk-also@npm:chalk@^5.4.0, chalk@npm:^5.3.0".
+      for (const descriptor of key.split(', ')) {
+        descriptorMap.set(descriptor, entry);
+      }
+      if (entry.linkType === 'soft') {
+        const idx = key.lastIndexOf('@workspace:');
+        if (idx >= 0) {
+          workspaces.push({id: key.substring(idx + '@workspace:'.length), entry});
+        }
+      }
+    }
+
+    const diffItems: ConsolidatedDiffItem[] = [];
+    const walk = (
+      entryDeps: Record<string, string> | undefined,
+      parentPath: string[],
+      visited: Set<string>
+    ) => {
+      if (!entryDeps) return;
+      for (const [name, range] of Object.entries(entryDeps)) {
+        const entry = descriptorMap.get(`${name}@${range}`);
+        if (!entry || entry.linkType === 'soft' || !entry.version) continue;
+        const path = [...parentPath, name];
+        diffItems.push({path, name, version: entry.version});
+        if (directOnly) continue;
+        const resolutionKey = entry.resolution ?? `${name}@${range}`;
+        if (visited.has(resolutionKey)) continue;
+        visited.add(resolutionKey);
+        walk(entry.dependencies, path, visited);
+      }
+    };
+
+    for (const {id, entry} of workspaces) {
+      const root = id === '.' ? [] : [id];
+      const depMeta = entry.dependenciesMeta ?? {};
+      const filteredDeps: Record<string, string> = {};
+      for (const [name, range] of Object.entries(entry.dependencies ?? {})) {
+        const optFlag = depMeta[name]?.optional;
+        const isOptional = optFlag === true || optFlag === 'true';
+        if (isOptional ? includeOptional : includeInstalled) {
+          filteredDeps[name] = range;
+        }
+      }
+      walk(filteredDeps, root, new Set());
+    }
+
+    return diffItems;
+  };
+
+  return {
+    from: readVersions(from),
+    to: readVersions(to),
+  };
+}
+
 export async function diffPackages(
   from: string,
   to: string,
@@ -273,6 +359,10 @@ export async function diffPackages(
     } finally {
       await rm(tmp, {recursive: true, force: true});
     }
+  } else if (mode === 'yarn') {
+    const fromYarn: YarnLockFile = parseSyml(fromDoc);
+    const toYarn: YarnLockFile = parseSyml(toDoc);
+    diff = diffYarnLockFile(fromYarn, toYarn, options);
   }
 
   const intersectionIdxs: number[] = [];

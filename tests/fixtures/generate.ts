@@ -8,6 +8,7 @@ const pexec = promisify(exec);
 
 const PNPM_V6 = '8.15.9';
 const PNPM_V9 = '11.1.2';
+const YARN_BERRY = '4.5.0';
 
 const packageJsonBefore =
   JSON.stringify(
@@ -44,6 +45,30 @@ async function prepareFixtureDirs(dir: string) {
   return {before, after};
 }
 
+async function writeWorkspacePackages(
+  stageDir: string,
+  workspaces: Record<string, FixtureDependencies>,
+  workspaceVersions?: Record<string, string>
+) {
+  for (const [wsPath, deps] of Object.entries(workspaces)) {
+    const wsDir = join(stageDir, wsPath);
+    await mkdir(wsDir, {recursive: true});
+    await writeFile(
+      join(wsDir, 'package.json'),
+      JSON.stringify(
+        {
+          name: `@npvd-fixture/${wsPath.split('/').pop()}`,
+          version: workspaceVersions?.[wsPath] ?? '0.0.0',
+          private: true,
+          ...deps,
+        },
+        null,
+        2
+      ) + '\n'
+    );
+  }
+}
+
 async function generateNpmFixtures(dir: string, lockfileVersion: string) {
   const {before, after} = await prepareFixtureDirs(dir);
   const cmd = `npm install --package-lock-only --lockfile-version ${lockfileVersion} --no-audit --no-fund --silent`;
@@ -72,23 +97,7 @@ async function setupPnpmWorkspaceStage(
     join(stageDir, 'pnpm-workspace.yaml'),
     `packages:\n${workspacePaths.map((p) => `  - '${p}'`).join('\n')}\n`
   );
-  for (const [wsPath, deps] of Object.entries(workspaces)) {
-    const wsDir = join(stageDir, wsPath);
-    await mkdir(wsDir, {recursive: true});
-    await writeFile(
-      join(wsDir, 'package.json'),
-      JSON.stringify(
-        {
-          name: `@npvd-fixture/${wsPath.split('/').pop()}`,
-          version: '0.0.0',
-          private: true,
-          ...deps,
-        },
-        null,
-        2
-      ) + '\n'
-    );
-  }
+  await writeWorkspacePackages(stageDir, workspaces);
 }
 
 async function generatePnpmWorkspaceFixtures(dir: string, pnpmVersion: string) {
@@ -126,23 +135,7 @@ async function setupNpmWorkspaceStage(
       2
     ) + '\n'
   );
-  for (const [wsPath, deps] of Object.entries(workspaces)) {
-    const wsDir = join(stageDir, wsPath);
-    await mkdir(wsDir, {recursive: true});
-    await writeFile(
-      join(wsDir, 'package.json'),
-      JSON.stringify(
-        {
-          name: `@npvd-fixture/${wsPath.split('/').pop()}`,
-          version: workspaceVersions[wsPath] ?? '0.0.0',
-          private: true,
-          ...deps,
-        },
-        null,
-        2
-      ) + '\n'
-    );
-  }
+  await writeWorkspacePackages(stageDir, workspaces, workspaceVersions);
 }
 
 async function generateNpmWorkspaceFixtures(dir: string) {
@@ -164,6 +157,52 @@ async function generateNpmWorkspaceFixtures(dir: string) {
   await pexec(cmd, {cwd: after});
 }
 
+async function runYarnInstall(cwd: string, yarnVersion: string) {
+  // Write empty yarn.lock so the fixture directory is recognized as standalone, not part of npvd.
+  // Manually remove unneeded .yarn/install-state.gz after generating lock file.
+  await writeFile(join(cwd, 'yarn.lock'), '');
+  const cmd = `npx --yes @yarnpkg/cli-dist@${yarnVersion} install --mode=update-lockfile`;
+  await pexec(cmd, {cwd, env: {...process.env, YARN_ENABLE_TELEMETRY: '0'}});
+  await rm(join(cwd, '.yarn'), {recursive: true, force: true});
+}
+
+async function generateYarnFixtures(dir: string, yarnVersion: string) {
+  const {before, after} = await prepareFixtureDirs(dir);
+  await runYarnInstall(before, yarnVersion);
+  await runYarnInstall(after, yarnVersion);
+}
+
+async function setupYarnWorkspaceStage(
+  stageDir: string,
+  workspaces: Record<string, FixtureDependencies>
+) {
+  await mkdir(stageDir, {recursive: true});
+  await writeFile(
+    join(stageDir, 'package.json'),
+    JSON.stringify(
+      {
+        name: 'npvd-fixture-mono',
+        version: '0.0.0',
+        private: true,
+        workspaces: Object.keys(workspaces),
+      },
+      null,
+      2
+    ) + '\n'
+  );
+  await writeWorkspacePackages(stageDir, workspaces);
+}
+
+async function generateYarnWorkspaceFixtures(dir: string, yarnVersion: string) {
+  await rm(dir, {recursive: true, force: true});
+  const before = join(dir, 'before');
+  const after = join(dir, 'after');
+  await setupYarnWorkspaceStage(before, workspaceDependencyVersions.before);
+  await setupYarnWorkspaceStage(after, workspaceDependencyVersions.after);
+  await runYarnInstall(before, yarnVersion);
+  await runYarnInstall(after, yarnVersion);
+}
+
 process.stdout.write('Generating fixtures...');
 
 await generateNpmFixtures(join(import.meta.dirname, 'npm-v2'), '2');
@@ -172,5 +211,7 @@ await generatePnpmFixtures(join(import.meta.dirname, 'pnpm-v6'), PNPM_V6);
 await generatePnpmFixtures(join(import.meta.dirname, 'pnpm-v9'), PNPM_V9);
 await generatePnpmWorkspaceFixtures(join(import.meta.dirname, 'pnpm-workspaces'), PNPM_V9);
 await generateNpmWorkspaceFixtures(join(import.meta.dirname, 'npm-workspaces'));
+await generateYarnFixtures(join(import.meta.dirname, 'yarn-berry'), YARN_BERRY);
+await generateYarnWorkspaceFixtures(join(import.meta.dirname, 'yarn-berry-workspaces'), YARN_BERRY);
 
 process.stdout.write(' done.\n');

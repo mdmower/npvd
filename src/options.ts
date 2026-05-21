@@ -1,6 +1,6 @@
 import {isRecord} from './utils.js';
 
-export const modes = ['npm', 'pnpm'] as const;
+export const modes = ['npm', 'pnpm', 'yarn'] as const;
 export type Mode = (typeof modes)[number];
 
 export const dependencyTypes = ['prod', 'dev', 'optional', 'peer'] as const;
