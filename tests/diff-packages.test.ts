@@ -135,6 +135,8 @@ describe('diffPackages', () => {
     const afterV6 = lockFilePath('pnpm-v6', 'after');
     const beforeV9 = lockFilePath('pnpm-v9', 'before');
     const afterV9 = lockFilePath('pnpm-v9', 'after');
+    const beforeV11 = lockFilePath('pnpm-v11', 'before');
+    const afterV11 = lockFilePath('pnpm-v11', 'after');
 
     it('detects changes between pnpm v9 lock files', async () => {
       const diff = await diffPackages(beforeV9, afterV9, {mode: 'pnpm'});
@@ -144,6 +146,22 @@ describe('diffPackages', () => {
     it('detects changes between pnpm v6 lock files', async () => {
       const diff = await diffPackages(beforeV6, afterV6, {mode: 'pnpm'});
       expect(diff).toEqual(expect.arrayContaining(expectedDependencyChanges));
+    });
+
+    it('detects changes between pnpm v11 lock files with package manager documents', async () => {
+      const diff = await diffPackages(beforeV11, afterV11, {mode: 'pnpm'});
+      expect(diff).toEqual(expect.arrayContaining(expectedDependencyChanges));
+    });
+
+    it('does not surface the pinned package manager as a dependency', async () => {
+      const diff = await diffPackages(beforeV11, afterV11, {mode: 'pnpm'});
+      expect(diff.map(({name}) => name)).not.toContain('pnpm');
+      expect(diff.map(({name}) => name)).not.toContain('@pnpm/exe');
+    });
+
+    it('ignores the package manager document when comparing against a single-document lock file', async () => {
+      const diff = await diffPackages(beforeV9, beforeV11, {mode: 'pnpm'});
+      expect(diff).toEqual([]);
     });
 
     it('supports cross-version v6 -> v9 diffs', async () => {

@@ -7,41 +7,45 @@ import {dependencyVersions, FixtureDependencies, workspaceDependencyVersions} fr
 const pexec = promisify(exec);
 
 const PNPM_V6 = '8.15.9';
-const PNPM_V9 = '11.1.2';
+const PNPM = '11.11.0';
 const YARN_BERRY = '4.5.0';
 
-const packageJsonBefore =
-  JSON.stringify(
-    {
-      name: 'npvd-fixture',
-      version: '0.0.0',
-      private: true,
-      ...dependencyVersions.before,
+// Pinning pnpm via devEngines.packageManager makes pnpm 11+ record its resolved version in a
+// leading YAML document of pnpm-lock.yaml. onFail: 'warn' allows npx to run.
+const pnpmV11Manifest = {
+  devEngines: {
+    packageManager: {
+      name: 'pnpm',
+      version: PNPM,
+      onFail: 'warn',
     },
-    null,
-    2
-  ) + '\n';
+  },
+};
 
-const packageJsonAfter =
-  JSON.stringify(
-    {
-      name: 'npvd-fixture',
-      version: '0.0.0',
-      private: true,
-      ...dependencyVersions.after,
-    },
-    null,
-    2
-  ) + '\n';
+function buildRootPackageJson(stage: 'before' | 'after', extraManifest?: Record<string, unknown>) {
+  return (
+    JSON.stringify(
+      {
+        name: 'npvd-fixture',
+        version: '0.0.0',
+        private: true,
+        ...extraManifest,
+        ...dependencyVersions[stage],
+      },
+      null,
+      2
+    ) + '\n'
+  );
+}
 
-async function prepareFixtureDirs(dir: string) {
+async function prepareFixtureDirs(dir: string, extraManifest?: Record<string, unknown>) {
   await rm(dir, {recursive: true, force: true});
   const before = join(dir, 'before');
   const after = join(dir, 'after');
   await mkdir(before, {recursive: true});
   await mkdir(after, {recursive: true});
-  await writeFile(join(before, 'package.json'), packageJsonBefore);
-  await writeFile(join(after, 'package.json'), packageJsonAfter);
+  await writeFile(join(before, 'package.json'), buildRootPackageJson('before', extraManifest));
+  await writeFile(join(after, 'package.json'), buildRootPackageJson('after', extraManifest));
   return {before, after};
 }
 
@@ -76,8 +80,12 @@ async function generateNpmFixtures(dir: string, lockfileVersion: string) {
   await pexec(cmd, {cwd: after});
 }
 
-async function generatePnpmFixtures(dir: string, pnpmVersion: string) {
-  const {before, after} = await prepareFixtureDirs(dir);
+async function generatePnpmFixtures(
+  dir: string,
+  pnpmVersion: string,
+  extraManifest?: Record<string, unknown>
+) {
+  const {before, after} = await prepareFixtureDirs(dir, extraManifest);
   const cmd = `npx --yes pnpm@${pnpmVersion} install --lockfile-only --ignore-scripts --silent`;
   await pexec(cmd, {cwd: before});
   await pexec(cmd, {cwd: after});
@@ -208,8 +216,9 @@ process.stdout.write('Generating fixtures...');
 await generateNpmFixtures(join(import.meta.dirname, 'npm-v2'), '2');
 await generateNpmFixtures(join(import.meta.dirname, 'npm-v3'), '3');
 await generatePnpmFixtures(join(import.meta.dirname, 'pnpm-v6'), PNPM_V6);
-await generatePnpmFixtures(join(import.meta.dirname, 'pnpm-v9'), PNPM_V9);
-await generatePnpmWorkspaceFixtures(join(import.meta.dirname, 'pnpm-workspaces'), PNPM_V9);
+await generatePnpmFixtures(join(import.meta.dirname, 'pnpm-v9'), PNPM);
+await generatePnpmFixtures(join(import.meta.dirname, 'pnpm-v11'), PNPM, pnpmV11Manifest);
+await generatePnpmWorkspaceFixtures(join(import.meta.dirname, 'pnpm-workspaces'), PNPM);
 await generateNpmWorkspaceFixtures(join(import.meta.dirname, 'npm-workspaces'));
 await generateYarnFixtures(join(import.meta.dirname, 'yarn-berry'), YARN_BERRY);
 await generateYarnWorkspaceFixtures(join(import.meta.dirname, 'yarn-berry-workspaces'), YARN_BERRY);

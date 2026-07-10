@@ -9,6 +9,7 @@ export function lockFilePath(
     | 'npm-workspaces'
     | 'pnpm-v6'
     | 'pnpm-v9'
+    | 'pnpm-v11'
     | 'pnpm-workspaces'
     | 'yarn-berry'
     | 'yarn-berry-workspaces',
